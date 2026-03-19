@@ -15,6 +15,11 @@ class Address extends Model
         'district',
         'address_line1',
         'address_line2',
-        'landmark'
+        'nearest_landmark'
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

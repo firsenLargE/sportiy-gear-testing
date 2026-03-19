@@ -16,12 +16,12 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('phone_no')->unique();
+            $table->string('phone_no')->unique()->nullable();
             $table->string('password');
             $table->enum('gender', ['male', 'female', 'other'])->nullable();
             $table->enum('account_status', ['active', 'pending', 'suspended', 'banned'])
                 ->default('active');
-            $table->softDeletes();
+            $table->timestamp('last_login_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

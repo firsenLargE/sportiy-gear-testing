@@ -48,4 +48,9 @@ class Product extends Model
     {
         return $this->belongsTo(Admin::class);
     }
+
+    public function attributes()
+    {
+        return $this->belongsToMany(Attribute::class);
+    }
 }

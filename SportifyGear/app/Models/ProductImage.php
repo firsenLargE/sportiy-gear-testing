@@ -12,4 +12,9 @@ class ProductImage extends Model
         'is_primary',
         'sort_order'
     ];
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
 }

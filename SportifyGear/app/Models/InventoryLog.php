@@ -12,4 +12,9 @@ class InventoryLog extends Model
         'quantity_change',
         'reference_id'
     ];
+
+    public function productVariant()
+    {
+        return $this->belongsTo(ProductVariant::class);
+    }
 }

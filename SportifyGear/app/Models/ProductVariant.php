@@ -11,7 +11,9 @@ class ProductVariant extends Model
 
     protected $fillable = [
         'product_id',
+        'name',
         'sku',
+        'description',
         'price',
         'stock_quantity',
         'weight'
@@ -36,9 +38,19 @@ class ProductVariant extends Model
 
     public function discounts()
     {
+        return $this->belongsToMany(Discount::class);
+    }
+    public function attributeValues()
+    {
         return $this->belongsToMany(
-            Discount::class,
-            'discount_product_variant'
+            AttributeValue::class,
+            'variant_attribute_values',
+            'product_variant_id',
+            'attribute_value_id'
         );
+    }
+    public function images()
+    {
+        return $this->hasMany(ProductVariantImage::class);
     }
 }
