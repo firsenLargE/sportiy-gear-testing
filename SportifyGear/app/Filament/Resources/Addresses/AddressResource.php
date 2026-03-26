@@ -26,7 +26,7 @@ class AddressResource extends Resource
 
     protected static ?string $navigationLabel = 'Shipping Addresses';
 
-    protected static ?string $recordTitleAttribute = 'Address';
+    protected static ?string $recordTitleAttribute = 'address_line1';
 
     public static function form(Schema $schema): Schema
     {
@@ -40,9 +40,7 @@ class AddressResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

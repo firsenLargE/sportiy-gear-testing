@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Filament\Panel;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 

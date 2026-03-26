@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use App\Observers\OrderObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+#[ObservedBy(OrderObserver::class)]
 class Order extends Model
 {
     use HasFactory;
@@ -12,11 +15,12 @@ class Order extends Model
     protected $fillable = [
         'user_id',
         'coupon_id',
-        'shipping_method_id',
+        'address_id',
+        'shipping_fee',
         'status_id',
         'order_number',
         'sub_total',
-        'total'
+        'total',
     ];
 
     public function user()
@@ -29,14 +33,14 @@ class Order extends Model
         return $this->belongsTo(Coupon::class);
     }
 
-    public function shippingMethod()
-    {
-        return $this->belongsTo(ShippingMethod::class);
-    }
-
     public function status()
     {
         return $this->belongsTo(Status::class);
+    }
+
+    public function address()
+    {
+        return $this->belongsTo(Address::class);
     }
 
     public function items()

@@ -13,14 +13,34 @@ return new class extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('order_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained();
-            $table->string('method');
+
+            $table->foreignId('order_id')
+                ->constrained()
+                ->cascadeOnDelete();
+
+            $table->foreignId('user_id')
+                ->constrained()
+                ->cascadeOnDelete();
+
+            $table->enum('method', ['cod', 'khalti', 'esewa', 'fonepay']);
+
             $table->string('transaction_id')->nullable();
+            $table->string('reference_id')->nullable();
+            $table->json('payment_details')->nullable();
+
             $table->decimal('amount', 10, 2);
-            $table->foreignId('status_id')->constrained('statuses');
+            $table->string('currency')->default('NPR');
+
+            $table->enum('status', ['pending', 'paid', 'failed', 'refunded'])->default('pending');
+
             $table->timestamp('paid_at')->nullable();
+
             $table->timestamps();
+
+            $table->index('order_id');
+            $table->index('user_id');
+
+            $table->unique('order_id');
         });
     }
 

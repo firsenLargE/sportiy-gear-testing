@@ -24,7 +24,7 @@ class AdminResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
-    protected static ?string $recordTitleAttribute = 'Admin';
+    protected static ?string $recordTitleAttribute = 'email';
 
     public static function form(Schema $schema): Schema
     {
