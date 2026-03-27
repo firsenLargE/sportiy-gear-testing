@@ -16,12 +16,8 @@ class UserObserver
      */
     public function created(User $user): void
     {
-        // Skip during console/seeding
         if (app()->runningInConsole()) return;
-
-        // Get all admins
         $admins = Admin::all();
-
         foreach ($admins as $admin) {
             Notification::make()
                 ->title('New User Registered')

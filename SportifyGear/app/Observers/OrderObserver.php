@@ -14,15 +14,9 @@ class OrderObserver
      */
     public function created(Order $order): void
     {
-        // Skip during console/seeding
         if (app()->runningInConsole()) return;
-
-        // Load the user relation
         $order->load('user');
-
-        // Get all admins
         $admins = Admin::all();
-
         foreach ($admins as $admin) {
             Notification::make()
                 ->title('New Order Placed')
