@@ -150,6 +150,7 @@ class ProductForm
 
                             FileUpload::make('image_path')
                                 ->image()
+                                ->disk('public')
                                 ->label('Image Upload')
                                 ->imagePreviewHeight('200')
                                 ->directory('products')
@@ -266,6 +267,7 @@ class ProductForm
                                         ->schema([
                                             FileUpload::make('image_path')
                                                 ->image()
+                                                ->disk('public')
                                                 ->imagePreviewHeight('200')
                                                 ->maxSize(1024)
                                                 ->directory('product_variants')

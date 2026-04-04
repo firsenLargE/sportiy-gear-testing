@@ -29,6 +29,7 @@ class ProductsTable
 
                 ImageColumn::make('images.image_path')
                     ->label('')
+                    ->disk('public')
                     ->circular()
                     ->stacked()
                     ->limit(1)

@@ -39,7 +39,7 @@ class Product extends Model
         return $this->hasMany(Review::class);
     }
 
-    public function wishlistedBy()
+    public function wishlist()
     {
         return $this->belongsToMany(User::class, 'wishlists');
     }
@@ -52,5 +52,30 @@ class Product extends Model
     public function attributes()
     {
         return $this->belongsToMany(Attribute::class);
+    }
+
+    // Display Image
+    public function getPrimaryImageAttribute()
+    {
+        $primary = $this->images->where('is_primary', true)->first();
+        return $primary ? asset('storage/' . $primary->image_path) : null;
+    }
+
+    // Minimum Price
+    public function getMinPriceAttribute()
+    {
+        return $this->variants->min('price') ?? 0;
+    }
+
+    // Maximum Price
+    public function getMaxPriceAttribute()
+    {
+        return $this->variants->max('price') ?? 0;
+    }
+
+    // Default Variant (cheapest)
+    public function getDefaultVariantAttribute()
+    {
+        return $this->variants->sortBy('price')->first();
     }
 }
