@@ -22,26 +22,24 @@
                 <!-- Left: Images Gallery -->
                 <div class="lg:w-1/2">
                     @php
-                        // Get all images (product images + variant images)
                         $allProductImages = $product->images->where('image_path', '!=', null);
                         $allVariantImages = collect();
-
                         foreach ($product->variants as $variant) {
                             if ($variant->images && $variant->images->isNotEmpty()) {
                                 $allVariantImages = $allVariantImages->merge($variant->images);
                             }
                         }
-
                         $allImages = $allProductImages->merge($allVariantImages)->unique('image_path');
                         $primaryImage = $allImages->where('is_primary', true)->first() ?? $allImages->first();
                     @endphp
 
                     <!-- Main Image -->
-                    <div class="bg-white rounded-xl overflow-hidden mb-4 cursor-zoom-in group">
+                    <div
+                        class="w-full h-[500px] bg-gray-100 flex items-center justify-center overflow-hidden rounded-xl">
                         <img id="mainProductImage"
                             src="{{ $primaryImage ? asset('storage/' . $primaryImage->image_path) : $product->display_image ?? 'https://via.placeholder.com/600x600?text=No+Image' }}"
                             alt="{{ $product->name }}"
-                            class="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500">
+                            class="w-full h-full object-contain transition-transform duration-500">
                     </div>
 
                     <!-- Thumbnail Gallery -->
@@ -60,10 +58,8 @@
 
                 <!-- Right: Product Details -->
                 <div class="lg:w-1/2">
-                    <!-- Product Title -->
                     <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">{{ $product->name }}</h1>
 
-                    <!-- Category Badge -->
                     @if ($product->categories->isNotEmpty())
                         <div class="mb-3">
                             <span
@@ -73,13 +69,10 @@
                         </div>
                     @endif
 
-                    <!-- Rating & Reviews -->
                     @if ($product->reviews_count > 0)
                         <div class="flex items-center gap-3 mb-4">
                             <div class="flex items-center gap-1">
-                                @php
-                                    $rating = round($product->reviews_avg_rating * 2) / 2;
-                                @endphp
+                                @php $rating = round($product->reviews_avg_rating * 2) / 2; @endphp
                                 @for ($i = 1; $i <= 5; $i++)
                                     @if ($rating >= $i)
                                         <svg class="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
@@ -118,18 +111,14 @@
                         $selectedVariant = $product->variants->first();
                         $finalPrice = $selectedVariant->price ?? 0;
                         $originalPrice = $finalPrice;
-                        $discountLabel = null;
                         $discountPercent = null;
-
                         if ($selectedVariant && $selectedVariant->discounts->isNotEmpty()) {
                             $discount = $selectedVariant->discounts->first();
                             if ($discount->discount_type === 'percentage') {
                                 $finalPrice -= ($selectedVariant->price * $discount->discount_value) / 100;
-                                $discountLabel = '-' . $discount->discount_value . '%';
                                 $discountPercent = $discount->discount_value;
                             } else {
                                 $finalPrice -= $discount->discount_value;
-                                $discountLabel = '-Rs ' . number_format($discount->discount_value);
                             }
                         }
                     @endphp
@@ -172,7 +161,6 @@
                                     <option value="{{ $variant->id }}" data-price="{{ $varFinalPrice }}"
                                         data-original-price="{{ $variant->price }}"
                                         data-stock="{{ $variant->stock_quantity }}"
-                                        data-discount-label="{{ $variant->discounts->first() ? ($variant->discounts->first()->discount_type === 'percentage' ? '-' . $variant->discounts->first()->discount_value . '%' : '-Rs ' . number_format($variant->discounts->first()->discount_value)) : '' }}"
                                         data-discount-percent="{{ $variant->discounts->first() && $variant->discounts->first()->discount_type === 'percentage' ? $variant->discounts->first()->discount_value : 0 }}"
                                         @if ($variant->images->isNotEmpty()) data-images='@json($variant->images->map(fn($img) => asset('storage/' . $img->image_path)))' @endif>
                                         {{ $variant->name ?? 'Default' }} - Rs. {{ number_format($varFinalPrice, 2) }}
@@ -204,15 +192,6 @@
                         </div>
                     </div>
 
-                    <!-- Description -->
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Product Details</h3>
-                        <div class="text-gray-600 leading-relaxed">
-                            {!! $selectedVariant->description ?? $product->description !!}
-                        </div>
-                    </div>
-
-                    <!-- Key Features (if any) -->
                     @if ($product->variants->first() && $product->variants->first()->attributeValues->isNotEmpty())
                         <div class="mb-6">
                             <h3 class="text-lg font-semibold text-gray-900 mb-2">Specifications</h3>
@@ -228,9 +207,8 @@
                         </div>
                     @endif
 
-                    <!-- Action Buttons - Conditionally show based on login status -->
+                    <!-- Action Buttons -->
                     @auth
-                        <!-- User is logged in - Show all action buttons -->
                         <div class="flex gap-3">
                             <button id="addToCartBtn"
                                 class="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2">
@@ -251,8 +229,6 @@
                                 </svg>
                             </button>
                         </div>
-
-                        <!-- Book Now Button -->
                         <div class="mt-3">
                             <a href="{{ route('orders.place', ['product' => $product->id, 'variant' => $selectedVariant->id ?? '']) }}"
                                 class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 text-center">
@@ -266,7 +242,6 @@
                             </a>
                         </div>
                     @else
-                        <!-- User is not logged in - Show login/register message -->
                         <div class="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-4 mb-4">
                             <div class="flex items-center">
                                 <svg class="w-6 h-6 text-amber-500 mr-3" fill="none" stroke="currentColor"
@@ -279,19 +254,13 @@
                                     <p class="text-amber-700 font-medium">Please login to purchase or book this product</p>
                                     <div class="mt-2 space-x-3">
                                         <a href="{{ route('login') }}"
-                                            class="inline-block bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition">
-                                            Login
-                                        </a>
+                                            class="inline-block bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition">Login</a>
                                         <a href="{{ route('register') }}"
-                                            class="inline-block bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition">
-                                            Register
-                                        </a>
+                                            class="inline-block bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition">Register</a>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Disabled buttons for guests -->
                         <div class="flex gap-3 opacity-50 cursor-not-allowed">
                             <button disabled
                                 class="flex-1 bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg cursor-not-allowed">
@@ -312,8 +281,6 @@
                                 </svg>
                             </button>
                         </div>
-
-                        <!-- Disabled Book Now button -->
                         <div class="mt-3">
                             <button disabled
                                 class="w-full bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg cursor-not-allowed">
@@ -327,11 +294,16 @@
                             </button>
                         </div>
                     @endauth
-
                 </div>
             </div>
 
-            <!-- Related Products -->
+            <div class="mb-6 mt-6">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Product Details</h1>
+                <div class="text-gray-600 leading-relaxed">
+                    {!! $selectedVariant->description ?? $product->description !!}
+                </div>
+            </div>
+
             @if ($relatedProducts->isNotEmpty())
                 <div class="mt-16">
                     <div class="flex items-center justify-between mb-6">
@@ -339,7 +311,6 @@
                         <a href="{{ route('products.index') }}"
                             class="text-orange-600 hover:text-orange-700 font-medium">View All →</a>
                     </div>
-
                     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6">
                         @foreach ($relatedProducts as $rel)
                             @php
@@ -357,8 +328,6 @@
                                         $relDiscountLabel = '-Rs ' . number_format($relDiscount->discount_value);
                                     }
                                 }
-
-                                // Get primary image
                                 $relImages = $rel->images->where('is_primary', true);
                                 if ($relImages->isEmpty() && $relVariant && $relVariant->images->isNotEmpty()) {
                                     $relImages = $relVariant->images->where('is_primary', true);
@@ -404,8 +373,6 @@
         // Function to change main image
         function changeMainImage(imageUrl, element) {
             document.getElementById('mainProductImage').src = imageUrl;
-
-            // Update active thumbnail border
             document.querySelectorAll('.thumbnail-btn').forEach(btn => {
                 btn.classList.remove('border-orange-500');
                 btn.classList.add('border-transparent');
@@ -416,7 +383,9 @@
             }
         }
 
-        // Handle variant selection changes
+        // --- NEW: Variant IDs already in cart (injected from backend) ---
+        const cartVariantIds = new Set(@json($cartVariantIds));
+
         document.addEventListener('DOMContentLoaded', function() {
             const variantSelect = document.getElementById('variantSelect');
             if (variantSelect) {
@@ -425,21 +394,17 @@
                     const price = parseFloat(selectedOption.dataset.price);
                     const originalPrice = parseFloat(selectedOption.dataset.originalPrice);
                     const stock = parseInt(selectedOption.dataset.stock);
-                    const discountLabel = selectedOption.dataset.discountLabel;
                     const discountPercent = parseInt(selectedOption.dataset.discountPercent);
                     const variantImages = selectedOption.dataset.images;
 
-                    // Update price display
                     const finalPriceSpan = document.getElementById('finalPrice');
                     const originalPriceSpan = document.getElementById('originalPrice');
-
                     if (finalPriceSpan) {
                         finalPriceSpan.textContent = 'Rs. ' + price.toLocaleString('en-IN', {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2
                         });
                     }
-
                     if (originalPriceSpan) {
                         if (price < originalPrice) {
                             originalPriceSpan.classList.remove('hidden');
@@ -451,8 +416,6 @@
                             originalPriceSpan.classList.add('hidden');
                         }
                     }
-
-                    // Update discount percent badge
                     const discountPercentSpan = document.querySelector('.bg-red-500.text-white.text-sm');
                     if (discountPercentSpan && discountPercent > 0) {
                         discountPercentSpan.textContent = discountPercent + '% OFF';
@@ -460,39 +423,22 @@
                     } else if (discountPercentSpan) {
                         discountPercentSpan.classList.add('hidden');
                     }
-
-                    // Update stock information
                     const stockInfoDiv = document.getElementById('stockInfo');
                     if (stockInfoDiv) {
                         if (stock > 0) {
-                            stockInfoDiv.innerHTML = `
-                                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                <span class="text-green-600 font-medium">${stock} in stock</span>
-                            `;
+                            stockInfoDiv.innerHTML =
+                                `<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span class="text-green-600 font-medium">${stock} in stock</span>`;
                         } else {
-                            stockInfoDiv.innerHTML = `
-                                <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                                <span class="text-red-500 font-medium">Out of Stock</span>
-                            `;
+                            stockInfoDiv.innerHTML =
+                                `<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg><span class="text-red-500 font-medium">Out of Stock</span>`;
                         }
                     }
-
-                    // Update images if variant has specific images
                     if (variantImages && variantImages !== 'null') {
                         try {
                             const images = JSON.parse(variantImages);
                             if (images.length > 0) {
-                                // Update main image
                                 const mainImage = document.getElementById('mainProductImage');
-                                if (mainImage) {
-                                    mainImage.src = images[0];
-                                }
-
-                                // Update thumbnail gallery
+                                if (mainImage) mainImage.src = images[0];
                                 const thumbnailContainer = document.querySelector('.grid.grid-cols-5');
                                 if (thumbnailContainer && images.length > 1) {
                                     thumbnailContainer.innerHTML = '';
@@ -516,25 +462,26 @@
                 });
             }
 
-            // Add to Cart functionality (only if user is logged in)
             @auth
             const addToCartBtn = document.getElementById('addToCartBtn');
             if (addToCartBtn) {
                 addToCartBtn.addEventListener('click', function() {
                     const variantSelect = document.getElementById('variantSelect');
                     let variantId = null;
-
                     if (variantSelect) {
                         variantId = variantSelect.value;
                     } else {
                         variantId = '{{ $product->variants->first()->id ?? '' }}';
                     }
-
                     if (!variantId) {
                         showNotification('error', 'Product variant not available');
                         return;
                     }
-
+                    // --- NEW: Check if already in cart ---
+                    if (cartVariantIds.has(variantId.toString())) {
+                        showNotification('info', 'This item is already in your cart!');
+                        return;
+                    }
                     fetch('{{ route('cart.add') }}', {
                             method: 'POST',
                             headers: {
@@ -551,6 +498,8 @@
                             if (data.success) {
                                 showNotification('success', data.message);
                                 updateCartCount(data.cart_count);
+                                // --- NEW: Add to local Set ---
+                                cartVariantIds.add(variantId.toString());
                             } else {
                                 showNotification('error', data.message);
                             }
@@ -562,7 +511,6 @@
                 });
             }
 
-            // Wishlist functionality
             const wishlistBtn = document.getElementById('wishlistBtn');
             if (wishlistBtn) {
                 wishlistBtn.addEventListener('click', function() {
@@ -593,8 +541,6 @@
                         })
                         .catch(error => console.error('Error:', error));
                 });
-
-                // Check initial wishlist status
                 fetch('{{ route('wishlist.check', $product->id) }}')
                     .then(response => response.json())
                     .then(data => {
@@ -609,15 +555,12 @@
         @endauth
         });
 
-        // Helper functions
         function showNotification(type, message) {
-            // Create a simple toast notification
             const notification = document.createElement('div');
             notification.className =
-                `fixed top-20 right-4 z-50 px-4 py-2 rounded-lg shadow-lg text-white ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} transition-opacity duration-300`;
+                `fixed top-20 right-4 z-50 px-4 py-2 rounded-lg shadow-lg text-white ${type === 'success' ? 'bg-green-500' : type === 'info' ? 'bg-blue-500' : 'bg-red-500'} transition-opacity duration-300`;
             notification.textContent = message;
             document.body.appendChild(notification);
-
             setTimeout(() => {
                 notification.style.opacity = '0';
                 setTimeout(() => notification.remove(), 300);
@@ -625,22 +568,15 @@
         }
 
         function updateCartCount(count) {
-            const cartCountElements = document.querySelectorAll('.cart-count');
-            cartCountElements.forEach(el => {
+            document.querySelectorAll('.cart-count').forEach(el => {
                 el.textContent = count;
-                if (count > 0) {
-                    el.classList.remove('hidden');
-                } else {
-                    el.classList.add('hidden');
-                }
+                if (count > 0) el.classList.remove('hidden');
+                else el.classList.add('hidden');
             });
         }
 
         function updateWishlistCount(count) {
-            const wishlistCountElements = document.querySelectorAll('.wishlist-count');
-            wishlistCountElements.forEach(el => {
-                el.textContent = count;
-            });
+            document.querySelectorAll('.wishlist-count').forEach(el => el.textContent = count);
         }
     </script>
 </x-frontend.layout>

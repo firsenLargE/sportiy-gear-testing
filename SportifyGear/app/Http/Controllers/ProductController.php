@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Attribute;
+use App\Models\Cart;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
@@ -61,47 +63,35 @@ class ProductController extends Controller
         // 🔽 Sorting
         if ($request->filled('sort')) {
             switch ($request->sort) {
-
                 case 'latest':
-                    $query->latest(); // order by created_at desc
+                    $query->latest();
                     break;
-
                 case 'price_low_high':
                     $query->whereHas('variants')
                         ->withMin('variants', 'price')
                         ->orderBy('variants_min_price', 'asc');
                     break;
-
                 case 'price_high_low':
                     $query->whereHas('variants')
                         ->withMin('variants', 'price')
                         ->orderBy('variants_min_price', 'desc');
                     break;
-
                 case 'name_asc':
                     $query->orderBy('name', 'asc');
                     break;
-
                 case 'name_desc':
                     $query->orderBy('name', 'desc');
                     break;
             }
         } else {
-            // default sorting
             $query->latest();
         }
 
-        // 📦 Pagination
         $products = $query->paginate(9)->withQueryString();
-
-        // 🌳 Categories
-        $categories = Category::with('childrenRecursive')
-            ->whereNull('parent_id')
-            ->get();
+        $categories = Category::with('childrenRecursive')->whereNull('parent_id')->get();
 
         return view('products.index', compact('products', 'categories', 'attributes'));
     }
-
 
     public function homeProducts()
     {
@@ -118,34 +108,30 @@ class ProductController extends Controller
             ->take(6)
             ->get();
 
-        // Pass products to the home page
         return view('pages.home', compact('products'));
     }
 
-
-
     public function show($slug)
     {
-        // Get the main product by slug
         $product = Product::with([
             'categories:id,name,slug',
             'images:id,product_id,image_path,is_primary',
             'variants' => function ($q) {
                 $q->with([
-                    'attributeValues:id,attribute_id,value', // correct columns
+                    'attributeValues:id,attribute_id,value',
                     'discounts:id,name,discount_type,discount_value',
                     'images:id,product_variant_id,image_path,is_primary',
                 ]);
             },
-            'reviews.user:id,name', // User info for reviews
+            'reviews.user:id,name',
         ])
             ->withAvg('reviews', 'rating')
             ->withCount('reviews')
             ->where('is_active', true)
             ->where('slug', $slug)
-            ->firstOrFail(); // 404 if not found
+            ->firstOrFail();
 
-        // Related products (same categories, exclude current product)
+        // Related products (same categories)
         $relatedProducts = Product::with([
             'images:id,product_id,image_path,is_primary',
             'variants' => function ($q) {
@@ -160,10 +146,21 @@ class ProductController extends Controller
             ->whereHas('categories', function ($q) use ($product) {
                 $q->whereIn('categories.id', $product->categories->pluck('id'));
             })
-            ->where('products.id', '!=', $product->id) // avoid ambiguity
+            ->where('products.id', '!=', $product->id)
             ->take(9)
             ->get();
 
-        return view('products.show', compact('product', 'relatedProducts'));
+        // --- NEW: Get variant IDs already in user's cart ---
+        $cartVariantIds = [];
+        if (Auth::check()) {
+            $cart = Cart::where('user_id', Auth::id())->first();
+            if ($cart) {
+                $cartVariantIds = $cart->items->pluck('product_variant_id')
+                    ->map(fn($id) => (string)$id)
+                    ->toArray();
+            }
+        }
+
+        return view('products.show', compact('product', 'relatedProducts', 'cartVariantIds'));
     }
 }

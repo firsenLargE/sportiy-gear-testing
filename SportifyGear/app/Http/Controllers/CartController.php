@@ -7,15 +7,18 @@ use App\Models\CartItem;
 use App\Models\ProductVariant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class CartController extends Controller
 {
-
-    // Get user's cart
     public function index()
     {
-        $cart = Cart::with(['items.variant.product', 'items.variant.images', 'items.variant.discounts'])
+        $cart = Cart::with([
+            'items.variant.product',
+            'items.variant.images',
+            'items.variant.discounts',
+            'items.variant.attributeValues.attribute'
+        ])
             ->where('user_id', Auth::id())
             ->first();
 
@@ -25,27 +28,44 @@ class CartController extends Controller
 
         $cartItems = $cart->items;
 
-        $subtotal = $cartItems->sum(function ($item) {
-            // Calculate price with discount
-            $price = $item->price;
-            if ($item->variant && $item->variant->discounts->isNotEmpty()) {
-                $discount = $item->variant->discounts->first();
-                if ($discount->discount_type === 'percentage') {
-                    $price = $item->variant->price - ($item->variant->price * $discount->discount_value / 100);
-                } else {
-                    $price = $item->variant->price - $discount->discount_value;
-                }
-            }
-            return $price * $item->quantity;
-        });
+        // Attach final_price to each item for easy use in Blade
+        foreach ($cartItems as $item) {
+            $item->final_price = $this->getFinalPrice($item->variant);
+        }
 
-        $shipping = $subtotal > 2000 ? 0 : 100; // Free shipping over Rs. 2000
-        $total = $subtotal + $shipping;
-
-        return view('cart.index', compact('cart', 'cartItems', 'subtotal', 'shipping', 'total'));
+        return view('cart.index', compact('cartItems'));
     }
 
-    // Add item to cart
+    /**
+     * Get final price after applying active discount
+     */
+    private function getFinalPrice($variant)
+    {
+        $price = $variant->price ?? 0;
+
+        if ($variant->discounts && $variant->discounts->isNotEmpty()) {
+            $discount = $variant->discounts->first();
+
+            $now = Carbon::now();
+
+            // Check if discount is currently active
+            if ($discount->start_date && $now->lt($discount->start_date)) {
+                return round($price, 2);
+            }
+            if ($discount->end_date && $now->gt($discount->end_date)) {
+                return round($price, 2);
+            }
+
+            if ($discount->discount_type === 'percentage') {
+                $price -= ($price * $discount->discount_value) / 100;
+            } else {
+                $price -= $discount->discount_value;
+            }
+        }
+
+        return round(max(0, $price), 2);
+    }
+
     public function add(Request $request)
     {
         $request->validate([
@@ -55,7 +75,6 @@ class CartController extends Controller
 
         $variant = ProductVariant::with('discounts')->findOrFail($request->variant_id);
 
-        // Check stock
         if ($variant->stock_quantity < $request->quantity) {
             return response()->json([
                 'success' => false,
@@ -63,29 +82,13 @@ class CartController extends Controller
             ], 400);
         }
 
-        // Get or create cart
-        $cart = Cart::firstOrCreate([
-            'user_id' => Auth::id()
-        ]);
+        $cart = Cart::firstOrCreate(['user_id' => Auth::id()]);
 
-        // Calculate final price with discount
-        $finalPrice = $variant->price;
-        if ($variant->discounts->isNotEmpty()) {
-            $discount = $variant->discounts->first();
-            if ($discount->discount_type === 'percentage') {
-                $finalPrice -= ($variant->price * $discount->discount_value) / 100;
-            } else {
-                $finalPrice -= $discount->discount_value;
-            }
-        }
-
-        // Check if item already in cart
         $cartItem = CartItem::where('cart_id', $cart->id)
             ->where('product_variant_id', $request->variant_id)
             ->first();
 
         if ($cartItem) {
-            // Update quantity
             $newQuantity = $cartItem->quantity + $request->quantity;
             if ($newQuantity > $variant->stock_quantity) {
                 return response()->json([
@@ -96,12 +99,10 @@ class CartController extends Controller
             $cartItem->quantity = $newQuantity;
             $cartItem->save();
         } else {
-            // Add new item
             CartItem::create([
                 'cart_id' => $cart->id,
                 'product_variant_id' => $request->variant_id,
                 'quantity' => $request->quantity,
-                'price' => $finalPrice
             ]);
         }
 
@@ -114,7 +115,6 @@ class CartController extends Controller
         ]);
     }
 
-    // Update cart item quantity
     public function update(Request $request, $id)
     {
         $request->validate([
@@ -124,7 +124,7 @@ class CartController extends Controller
         $cartItem = CartItem::findOrFail($id);
         $this->authorizeCartAccess($cartItem->cart);
 
-        $variant = ProductVariant::findOrFail($cartItem->product_variant_id);
+        $variant = ProductVariant::with('discounts')->findOrFail($cartItem->product_variant_id);
 
         if ($request->quantity > $variant->stock_quantity) {
             return response()->json([
@@ -136,70 +136,27 @@ class CartController extends Controller
         $cartItem->quantity = $request->quantity;
         $cartItem->save();
 
-        // Recalculate totals
-        $cart = $cartItem->cart;
-        $subtotal = $cart->items->sum(function ($item) {
-            $price = $item->price;
-            if ($item->variant && $item->variant->discounts->isNotEmpty()) {
-                $discount = $item->variant->discounts->first();
-                if ($discount->discount_type === 'percentage') {
-                    $price = $item->variant->price - ($item->variant->price * $discount->discount_value / 100);
-                } else {
-                    $price = $item->variant->price - $discount->discount_value;
-                }
-            }
-            return $price * $item->quantity;
-        });
-        $shipping = $subtotal > 2000 ? 0 : 100;
-        $total = $subtotal + $shipping;
-
         return response()->json([
             'success' => true,
-            'message' => 'Cart updated successfully',
-            'subtotal' => number_format($subtotal, 2),
-            'shipping' => number_format($shipping, 2),
-            'total' => number_format($total, 2),
-            'item_total' => number_format($cartItem->price * $cartItem->quantity, 2)
+            'message' => 'Cart updated successfully'
         ]);
     }
 
-    // Remove item from cart
     public function remove($id)
     {
         $cartItem = CartItem::findOrFail($id);
         $this->authorizeCartAccess($cartItem->cart);
         $cartItem->delete();
 
-        // Recalculate totals
-        $cart = $cartItem->cart;
-        $subtotal = $cart->items->sum(function ($item) {
-            $price = $item->price;
-            if ($item->variant && $item->variant->discounts->isNotEmpty()) {
-                $discount = $item->variant->discounts->first();
-                if ($discount->discount_type === 'percentage') {
-                    $price = $item->variant->price - ($item->variant->price * $discount->discount_value / 100);
-                } else {
-                    $price = $item->variant->price - $discount->discount_value;
-                }
-            }
-            return $price * $item->quantity;
-        });
-        $shipping = $subtotal > 2000 ? 0 : 100;
-        $total = $subtotal + $shipping;
-
-        $cartCount = CartItem::where('cart_id', $cart->id)->sum('quantity');
+        $cartCount = CartItem::where('cart_id', $cartItem->cart_id)->sum('quantity');
 
         return response()->json([
             'success' => true,
             'message' => 'Item removed from cart',
-            'cart_count' => $cartCount,
-            'subtotal' => number_format($subtotal, 2),
-            'shipping' => number_format($shipping, 2),
-            'total' => number_format($total, 2)
+            'cart_count' => $cartCount
         ]);
     }
 
-    // Clear entire cart
     public function clear()
     {
         $cart = Cart::where('user_id', Auth::id())->first();
@@ -213,15 +170,11 @@ class CartController extends Controller
         ]);
     }
 
-    // Get cart count for header
     public function getCount()
     {
         $cart = Cart::where('user_id', Auth::id())->first();
         $count = $cart ? $cart->items->sum('quantity') : 0;
-
-        return response()->json([
-            'count' => $count
-        ]);
+        return response()->json(['count' => $count]);
     }
 
     private function authorizeCartAccess($cart)

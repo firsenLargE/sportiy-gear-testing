@@ -43,13 +43,17 @@
                                                 <div class="flex flex-col sm:flex-row sm:justify-between gap-2">
                                                     <div>
                                                         <h3 class="font-semibold text-gray-800">
-                                                            {{ $item->variant->product->name }}</h3>
-                                                        <p class="text-sm text-gray-500">Variant:
-                                                            {{ $item->variant->name ?? 'Standard' }}</p>
+                                                            {{ $item->variant->product->name }}
+                                                        </h3>
+                                                        <p class="text-sm text-gray-500">
+                                                            Variant: {{ $item->variant->name ?? 'Standard' }}
+                                                        </p>
+
                                                         @if ($item->variant->attributeValues->isNotEmpty())
                                                             <div class="text-xs text-gray-500 mt-1">
                                                                 @foreach ($item->variant->attributeValues as $attr)
-                                                                    {{ $attr->attribute->name }}: {{ $attr->value }}
+                                                                    {{ $attr->attribute->name ?? 'Attribute' }}:
+                                                                    {{ $attr->value }}
                                                                     @if (!$loop->last)
                                                                         ,
                                                                     @endif
@@ -57,41 +61,59 @@
                                                             </div>
                                                         @endif
                                                     </div>
+
                                                     <div class="text-right">
-                                                        <p class="text-lg font-bold text-orange-600 item-price"
-                                                            data-price="{{ $item->price }}">
-                                                            Rs. {{ number_format($item->price, 2) }}
-                                                        </p>
-                                                        @if ($item->variant->discounts->isNotEmpty())
-                                                            <p class="text-xs text-green-600">Discounted price applied
+                                                        @php
+                                                            $originalPrice = $item->variant->price ?? 0;
+                                                            $finalPrice = $item->final_price ?? $originalPrice;
+                                                        @endphp
+
+                                                        @if ($originalPrice > $finalPrice)
+                                                            <p class="text-sm text-gray-400 line-through">
+                                                                Rs. {{ number_format($originalPrice, 2) }}
+                                                            </p>
+                                                            <p class="text-lg font-bold text-orange-600 item-price"
+                                                                data-unit-price="{{ $finalPrice }}">
+                                                                Rs.
+                                                                {{ number_format($finalPrice * $item->quantity, 2) }}
+                                                            </p>
+                                                            <p class="text-xs text-green-600 font-medium">✓ Discount
+                                                                applied</p>
+                                                        @else
+                                                            <p class="text-lg font-bold text-orange-600 item-price"
+                                                                data-unit-price="{{ $finalPrice }}">
+                                                                Rs.
+                                                                {{ number_format($finalPrice * $item->quantity, 2) }}
                                                             </p>
                                                         @endif
                                                     </div>
                                                 </div>
 
                                                 <!-- Quantity and Actions -->
-                                                <div class="flex items-center justify-between mt-4">
+                                                <div class="flex items-center justify-between mt-6">
                                                     <div class="flex items-center border border-gray-300 rounded-lg">
                                                         <button
-                                                            class="quantity-btn decrement px-3 py-1 text-gray-600 hover:bg-gray-100"
+                                                            class="quantity-btn decrement px-4 py-2 text-gray-600 hover:bg-gray-100 transition"
                                                             data-id="{{ $item->id }}">
-                                                            -
+                                                            −
                                                         </button>
                                                         <input type="number"
-                                                            class="quantity-input w-16 text-center border-0 focus:ring-0"
+                                                            class="quantity-input w-16 text-center border-0 focus:ring-0 no-spinner"
                                                             value="{{ $item->quantity }}" min="1"
-                                                            max="{{ $item->variant->stock_quantity }}"
-                                                            data-id="{{ $item->id }}">
+                                                            max="{{ $item->variant->stock_quantity ?? 10 }}"
+                                                            data-id="{{ $item->id }}" readonly>
                                                         <button
-                                                            class="quantity-btn increment px-3 py-1 text-gray-600 hover:bg-gray-100"
+                                                            class="quantity-btn increment px-4 py-2 text-gray-600 hover:bg-gray-100 transition"
                                                             data-id="{{ $item->id }}">
                                                             +
                                                         </button>
                                                     </div>
-                                                    <button class="remove-item text-red-500 hover:text-red-700 text-sm"
+
+                                                    <button
+                                                        class="remove-item flex items-center gap-1 text-red-500 hover:text-red-700 text-sm font-medium"
                                                         data-id="{{ $item->id }}">
-                                                        <svg class="w-5 h-5 inline mr-1" fill="none"
-                                                            stroke="currentColor" viewBox="0 0 24 24">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                            viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round"
                                                                 stroke-width="2"
                                                                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
@@ -108,66 +130,43 @@
                         </div>
                     </div>
 
-                    <!-- Order Summary -->
-                    <div class="lg:col-span-1">
-                        <div class="bg-white rounded-lg shadow-md p-6 sticky top-24">
-                            <h2 class="text-xl font-bold text-gray-800 mb-4">Order Summary</h2>
-                            <div class="space-y-3">
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Subtotal</span>
-                                    <span class="font-semibold" id="subtotal">Rs.
-                                        {{ number_format($subtotal, 2) }}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Shipping</span>
-                                    <span class="font-semibold" id="shipping">
-                                        @if ($shipping > 0)
-                                            Rs. {{ number_format($shipping, 2) }}
-                                        @else
-                                            Free
-                                        @endif
-                                    </span>
-                                </div>
-                                <div class="border-t border-gray-200 pt-3">
-                                    <div class="flex justify-between">
-                                        <span class="text-lg font-bold text-gray-800">Total</span>
-                                        <span class="text-xl font-bold text-orange-600" id="total">Rs.
-                                            {{ number_format($total, 2) }}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mt-6 space-y-3">
-                                <a href="{{ route('orders.checkout') }}"
-                                    class="block w-full bg-orange-600 text-white text-center py-3 rounded-lg hover:bg-orange-700 transition">
-                                    Proceed to Checkout
-                                </a>
-                                <a href="{{ route('products.index') }}"
-                                    class="block w-full border border-orange-600 text-orange-600 text-center py-3 rounded-lg hover:bg-orange-50 transition">
-                                    Continue Shopping
-                                </a>
-                            </div>
-                        </div>
+                    <!-- Sidebar -->
+                    <div class="lg:col-span-1 mt-6 lg:mt-0 space-y-3">
+                        <a href="{{ route('orders.checkout') }}"
+                            class="block w-full bg-orange-600 text-white text-center py-4 rounded-lg hover:bg-orange-700 transition font-semibold text-lg">
+                            Proceed to Checkout
+                        </a>
+                        <a href="{{ route('products.index') }}"
+                            class="block w-full border border-orange-600 text-orange-600 text-center py-4 rounded-lg hover:bg-orange-50 transition font-medium">
+                            Continue Shopping
+                        </a>
                     </div>
                 </div>
             @endif
         </div>
     </div>
 
-    <script>
-        document.querySelectorAll('.quantity-input').forEach(input => {
-            input.addEventListener('change', function() {
-                updateQuantity(this.dataset.id, this.value);
-            });
-        });
+    <style>
+        /* Remove number input spin arrows in all browsers */
+        .no-spinner::-webkit-outer-spin-button,
+        .no-spinner::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
 
+        .no-spinner {
+            -moz-appearance: textfield;
+        }
+    </style>
+
+    <script>
         document.querySelectorAll('.increment').forEach(btn => {
             btn.addEventListener('click', function() {
                 const input = document.querySelector(`.quantity-input[data-id="${this.dataset.id}"]`);
                 if (input) {
                     let newVal = parseInt(input.value) + 1;
                     if (newVal <= parseInt(input.max)) {
-                        updateQuantity(this.dataset.id, newVal);
+                        updateQuantity(this.dataset.id, newVal, input);
                     }
                 }
             });
@@ -179,7 +178,7 @@
                 if (input) {
                     let newVal = parseInt(input.value) - 1;
                     if (newVal >= 1) {
-                        updateQuantity(this.dataset.id, newVal);
+                        updateQuantity(this.dataset.id, newVal, input);
                     }
                 }
             });
@@ -193,7 +192,7 @@
             });
         });
 
-        function updateQuantity(itemId, quantity) {
+        function updateQuantity(itemId, quantity, inputEl) {
             fetch(`/cart/update/${itemId}`, {
                     method: 'PUT',
                     headers: {
@@ -207,9 +206,21 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        location.reload();
+                        // Update input value without reload
+                        inputEl.value = quantity;
+
+                        // Update displayed price for this item
+                        const cartItem = inputEl.closest('.cart-item');
+                        const priceEl = cartItem.querySelector('.item-price');
+                        if (priceEl) {
+                            const unitPrice = parseFloat(priceEl.dataset.unitPrice);
+                            priceEl.textContent = 'Rs. ' + (unitPrice * quantity).toLocaleString('en-IN', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            });
+                        }
                     } else {
-                        alert(data.message);
+                        alert(data.message || 'Failed to update quantity');
                     }
                 })
                 .catch(error => console.error('Error:', error));
@@ -225,7 +236,17 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        location.reload();
+                        // Remove the item row from DOM without reload
+                        const cartItem = document.querySelector(`.cart-item[data-item-id="${itemId}"]`);
+                        if (cartItem) {
+                            cartItem.remove();
+                        }
+
+                        // If no items left, reload to show empty state
+                        const remaining = document.querySelectorAll('.cart-item');
+                        if (remaining.length === 0) {
+                            location.reload();
+                        }
                     } else {
                         alert('Failed to remove item');
                     }

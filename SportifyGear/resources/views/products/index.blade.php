@@ -297,10 +297,6 @@
                                 <div class="relative overflow-hidden bg-gray-100 h-40 sm:h-56">
                                     <img src="{{ $variantImage }}"
                                         class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105">
-                                    <!-- Quick View Overlay -->
-                                    <div
-                                        class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300">
-                                    </div>
                                 </div>
 
                                 <div class="p-3 sm:p-4">

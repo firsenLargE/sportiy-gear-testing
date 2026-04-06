@@ -60,12 +60,10 @@
                         @endif
 
                         <!-- Product Image -->
-                        <div class="relative overflow-hidden bg-gray-100 h-40 sm:h-56">
+                        <div
+                            class="relative bg-gray-100 h-40 sm:h-56 flex items-center justify-center overflow-hidden p-2">
                             <img src="{{ $variantImage }}"
-                                class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105">
-                            <div
-                                class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300">
-                            </div>
+                                class="max-h-full max-w-full object-contain transition-transform duration-500 group-hover:scale-110">
                         </div>
 
                         <!-- Product Details -->
