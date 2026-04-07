@@ -3,17 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cart;
+use App\Models\CartItem;          // <-- ADD THIS
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Address;
 use App\Models\Coupon;
+use App\Models\Product;
+use App\Models\ProductVariant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
-    // Checkout page
+    // Checkout page (cart-based) – not used if you use CartController@checkout
     public function checkout()
     {
         $cart = Cart::with(['items.variant.product', 'items.variant.discounts'])
@@ -42,24 +45,26 @@ class OrderController extends Controller
         $shipping = $subtotal > 2000 ? 0 : 100;
         $total = $subtotal + $shipping;
 
-        return view('order.checkout', compact('cart', 'addresses', 'subtotal', 'shipping', 'total'));
+        return view('orders.checkout', compact('cart', 'addresses', 'subtotal', 'shipping', 'total'));
     }
 
-    // Place order
+    /**
+     * Place order – supports:
+     * - Direct single product (product_variant_id)
+     * - Full cart checkout (no selected_items)
+     * - Selected cart items (selected_items[])
+     */
     public function placeOrder(Request $request)
     {
         $request->validate([
-            'address_id' => 'required|exists:addresses,id',
-            'coupon_code' => 'nullable|exists:coupons,code'
+            'address_id'          => 'required|exists:addresses,id',
+            'coupon_code'         => 'nullable|exists:coupons,code',
+            'product_variant_id'  => 'nullable|exists:product_variants,id',
+            'quantity'            => 'nullable|integer|min:1',
+            'payment_method'      => 'nullable|string|in:cod,esewa,khalti',
+            'selected_items'      => 'nullable|array',
+            'selected_items.*'    => 'exists:cart_items,id',
         ]);
-
-        $cart = Cart::with(['items.variant'])
-            ->where('user_id', Auth::id())
-            ->first();
-
-        if (!$cart || $cart->items->isEmpty()) {
-            return back()->with('error', 'Your cart is empty');
-        }
 
         // Verify address belongs to user
         $address = Address::where('id', $request->address_id)
@@ -70,16 +75,99 @@ class OrderController extends Controller
             return back()->with('error', 'Invalid address');
         }
 
-        // Check stock availability
-        foreach ($cart->items as $item) {
+        // ------------------------------
+        // DIRECT ORDER (single product)
+        // ------------------------------
+        if ($request->filled('product_variant_id')) {
+            $variant = ProductVariant::with('product', 'discounts')->findOrFail($request->product_variant_id);
+            $quantity = $request->input('quantity', 1);
+
+            if ($variant->stock_quantity < $quantity) {
+                return back()->with('error', "Insufficient stock for {$variant->product->name}. Only {$variant->stock_quantity} left.");
+            }
+
+            $price = $variant->price;
+            if ($variant->discounts->isNotEmpty()) {
+                $discount = $variant->discounts->first();
+                if ($discount->discount_type === 'percentage') {
+                    $price -= ($variant->price * $discount->discount_value / 100);
+                } else {
+                    $price -= $discount->discount_value;
+                }
+            }
+
+            $subtotal = $price * $quantity;
+            $shipping = $subtotal > 2000 ? 0 : 100;
+            $total = $subtotal + $shipping;
+
+            DB::beginTransaction();
+            try {
+                $order = Order::create([
+                    'user_id'        => Auth::id(),
+                    'address_id'     => $address->id,
+                    'shipping_fee'   => $shipping,
+                    'status_id'      => 1,
+                    'order_number'   => 'ORD-' . strtoupper(uniqid()),
+                    'sub_total'      => $subtotal,
+                    'total'          => $total,
+                    'payment_method' => $request->payment_method ?? 'cod',
+                ]);
+
+                OrderItem::create([
+                    'order_id'           => $order->id,
+                    'product_id'         => $variant->product_id,
+                    'product_variant_id' => $variant->id,
+                    'quantity'           => $quantity,
+                    'price'              => $price,
+                ]);
+
+                $variant->decrement('stock_quantity', $quantity);
+
+                DB::commit();
+                return redirect()->route('orders.success', $order)
+                    ->with('success', 'Order placed successfully!');
+            } catch (\Exception $e) {
+                DB::rollback();
+                return back()->with('error', 'Failed to place order. Please try again.');
+            }
+        }
+
+        // ------------------------------
+        // CART-BASED ORDER (supports selection)
+        // ------------------------------
+        $selectedItemIds = $request->input('selected_items', []);
+
+        // If specific items are selected, fetch only those
+        if (!empty($selectedItemIds)) {
+            $cartItems = CartItem::with('variant')
+                ->whereIn('id', $selectedItemIds)
+                ->get();
+
+            if ($cartItems->isEmpty()) {
+                return back()->with('error', 'Selected items not found.');
+            }
+        } else {
+            // Fallback: full cart (no selection mode)
+            $cart = Cart::with(['items.variant'])
+                ->where('user_id', Auth::id())
+                ->first();
+
+            if (!$cart || $cart->items->isEmpty()) {
+                return back()->with('error', 'Your cart is empty');
+            }
+            $cartItems = $cart->items;
+        }
+
+        // Stock check for all items being ordered
+        foreach ($cartItems as $item) {
             if ($item->variant->stock_quantity < $item->quantity) {
                 return back()->with('error', "Insufficient stock for {$item->variant->product->name}");
             }
         }
 
-        // Calculate totals
-        $subtotal = $cart->items->sum(function ($item) {
-            $price = $item->price;
+        // Calculate subtotal (with discounts)
+        $subtotal = $cartItems->sum(function ($item) {
+            $price = $item->variant->price ?? 0;
             if ($item->variant && $item->variant->discounts->isNotEmpty()) {
                 $discount = $item->variant->discounts->first();
                 if ($discount->discount_type === 'percentage') {
@@ -94,7 +182,7 @@ class OrderController extends Controller
         $shipping = $subtotal > 2000 ? 0 : 100;
         $total = $subtotal + $shipping;
 
-        // Apply coupon if exists
+        // Apply coupon if provided
         $coupon = null;
         if ($request->coupon_code) {
             $coupon = Coupon::where('code', $request->coupon_code)->first();
@@ -109,23 +197,21 @@ class OrderController extends Controller
         }
 
         DB::beginTransaction();
-
         try {
-            // Create order
             $order = Order::create([
-                'user_id' => Auth::id(),
-                'coupon_id' => $coupon ? $coupon->id : null,
-                'address_id' => $address->id,
-                'shipping_fee' => $shipping,
-                'status_id' => 1, // Assuming 1 = pending
-                'order_number' => 'ORD-' . strtoupper(uniqid()),
-                'sub_total' => $subtotal,
-                'total' => $total,
+                'user_id'        => Auth::id(),
+                'coupon_id'      => $coupon ? $coupon->id : null,
+                'address_id'     => $address->id,
+                'shipping_fee'   => $shipping,
+                'status_id'      => 1,
+                'order_number'   => 'ORD-' . strtoupper(uniqid()),
+                'sub_total'      => $subtotal,
+                'total'          => $total,
+                'payment_method' => $request->payment_method ?? 'cod',
             ]);
 
-            // Create order items
-            foreach ($cart->items as $item) {
-                $price = $item->price;
+            foreach ($cartItems as $item) {
+                $price = $item->variant->price ?? 0;
                 if ($item->variant && $item->variant->discounts->isNotEmpty()) {
                     $discount = $item->variant->discounts->first();
                     if ($discount->discount_type === 'percentage') {
@@ -136,23 +222,27 @@ class OrderController extends Controller
                 }
 
                 OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $item->variant->product_id,
+                    'order_id'           => $order->id,
+                    'product_id'         => $item->variant->product_id,
                     'product_variant_id' => $item->product_variant_id,
-                    'quantity' => $item->quantity,
-                    'price' => $price
+                    'quantity'           => $item->quantity,
+                    'price'              => $price,
                 ]);
 
-                // Reduce stock
                 $item->variant->decrement('stock_quantity', $item->quantity);
             }
 
-            // Clear cart
-            $cart->items()->delete();
+            // Clear ONLY the used items from the cart
+            if (!empty($selectedItemIds)) {
+                CartItem::whereIn('id', $selectedItemIds)->delete();
+            } else {
+                // Full cart fallback: clear whole cart
+                $cart = Cart::where('user_id', Auth::id())->first();
+                if ($cart) $cart->items()->delete();
+            }
 
             DB::commit();
-
-            return redirect()->route('order.success', $order)
+            return redirect()->route('orders.success', $order)
                 ->with('success', 'Order placed successfully!');
         } catch (\Exception $e) {
             DB::rollback();
@@ -163,16 +253,14 @@ class OrderController extends Controller
     // Order success page
     public function success(Order $order)
     {
-        // Check if order belongs to authenticated user
         if ($order->user_id !== Auth::id()) {
             abort(403, 'Unauthorized access');
         }
-
         $order->load(['items.productVariant.product', 'address', 'status']);
-        return view('order.success', compact('order'));
+        return view('orders.success', compact('order'));
     }
 
-    // My orders
+    // My orders list
     public function myOrders()
     {
         $orders = Order::with(['status', 'items.productVariant.product'])
@@ -180,50 +268,72 @@ class OrderController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        return view('order.index', compact('orders'));
+        return view('orders.index', compact('orders'));
     }
 
-    // Order details
+    // Single order details
     public function show(Order $order)
     {
-        // Check if order belongs to authenticated user
         if ($order->user_id !== Auth::id()) {
             abort(403, 'Unauthorized access');
         }
-
         $order->load(['items.productVariant.product', 'address', 'status', 'coupon']);
-        return view('order.show', compact('order'));
+        return view('orders.show', compact('order'));
     }
 
     // Cancel order
     public function cancel(Order $order)
     {
-        // Check if order belongs to authenticated user
         if ($order->user_id !== Auth::id()) {
             abort(403, 'Unauthorized access');
         }
 
-        if (!in_array($order->status_id, [1, 2])) { // 1=pending, 2=confirmed
+        if (!in_array($order->status_id, [1, 2])) {
             return back()->with('error', 'This order cannot be cancelled');
         }
 
         DB::beginTransaction();
-
         try {
-            // Restore stock
             foreach ($order->items as $item) {
                 $item->productVariant->increment('stock_quantity', $item->quantity);
             }
-
-            $order->update(['status_id' => 5]); // 5 = cancelled
-
+            $order->update(['status_id' => 5]);
             DB::commit();
-
-            return redirect()->route('order.show', $order)
+            return redirect()->route('orders.show', $order)
                 ->with('success', 'Order cancelled successfully');
         } catch (\Exception $e) {
             DB::rollback();
             return back()->with('error', 'Failed to cancel order');
         }
+    }
+
+    // Show direct order form for a single product/variant (GET route)
+    public function directOrderForm($productId, $variantId = null)
+    {
+        $product = Product::findOrFail($productId);
+
+        if (!$variantId) {
+            $variant = $product->variants()->first();
+        } else {
+            $variant = $product->variants()->findOrFail($variantId);
+        }
+
+        $price = $variant->price;
+        if ($variant->discounts->isNotEmpty()) {
+            $discount = $variant->discounts->first();
+            if ($discount->discount_type === 'percentage') {
+                $price -= ($variant->price * $discount->discount_value / 100);
+            } else {
+                $price -= $discount->discount_value;
+            }
+        }
+
+        $subtotal = $price;
+        $shipping = $subtotal > 2000 ? 0 : 100;
+        $total = $subtotal + $shipping;
+
+        $addresses = Address::where('user_id', Auth::id())->get();
+
+        return view('orders.place', compact('product', 'variant', 'price', 'subtotal', 'shipping', 'total', 'addresses'));
     }
 }

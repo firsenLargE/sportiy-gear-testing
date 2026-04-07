@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Address;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\ProductVariant;
@@ -28,7 +29,6 @@ class CartController extends Controller
 
         $cartItems = $cart->items;
 
-        // Attach final_price to each item for easy use in Blade
         foreach ($cartItems as $item) {
             $item->final_price = $this->getFinalPrice($item->variant);
         }
@@ -36,19 +36,14 @@ class CartController extends Controller
         return view('cart.index', compact('cartItems'));
     }
 
-    /**
-     * Get final price after applying active discount
-     */
     private function getFinalPrice($variant)
     {
         $price = $variant->price ?? 0;
 
         if ($variant->discounts && $variant->discounts->isNotEmpty()) {
             $discount = $variant->discounts->first();
-
             $now = Carbon::now();
 
-            // Check if discount is currently active
             if ($discount->start_date && $now->lt($discount->start_date)) {
                 return round($price, 2);
             }
@@ -182,5 +177,71 @@ class CartController extends Controller
         if ($cart->user_id !== Auth::id()) {
             abort(403, 'Unauthorized access');
         }
+    }
+
+    /**
+     * Checkout - handles both full cart and selected items
+     */
+    public function checkout(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login')->with('error', 'Please login to proceed to checkout.');
+        }
+
+        $selectedItemIds = $request->input('selected_items', []);
+        if (empty($selectedItemIds)) {
+            return redirect()->route('cart.index')->with('error', 'Please select at least one item to checkout.');
+        }
+
+        // Get the user's cart
+        $cart = Cart::where('user_id', $user->id)->first();
+        if (!$cart) {
+            return redirect()->route('cart.index')->with('error', 'Your cart is empty.');
+        }
+
+        // ✅ Direct query – only selected items
+        $selectedItems = CartItem::with([
+            'variant.product',
+            'variant.images',
+            'variant.discounts',
+            'variant.attributeValues.attribute'
+        ])
+            ->where('cart_id', $cart->id)
+            ->whereIn('id', $selectedItemIds)
+            ->get();
+
+        if ($selectedItems->isEmpty()) {
+            return redirect()->route('cart.index')->with('error', 'Selected items not found in your cart.');
+        }
+
+        // Calculate final price for each selected item
+        foreach ($selectedItems as $item) {
+            $item->final_price = $this->getFinalPrice($item->variant);
+        }
+
+        $subtotal = $selectedItems->sum(function ($item) {
+            return ($item->final_price ?? $item->variant->price ?? 0) * $item->quantity;
+        });
+
+        $addresses = Address::where('user_id', $user->id)->get();
+        $shipping = $subtotal > 2000 ? 0 : 100;
+        $total = $subtotal + $shipping;
+
+        return view('cart.checkout', compact('selectedItems', 'addresses', 'subtotal', 'shipping', 'total'));
+    }
+
+    private function getItemFinalPrice($item)
+    {
+        $price = $item->price;
+        if ($item->variant && $item->variant->discounts->isNotEmpty()) {
+            $discount = $item->variant->discounts->first();
+            if ($discount->discount_type === 'percentage') {
+                $price = $item->variant->price - ($item->variant->price * $discount->discount_value / 100);
+            } else {
+                $price = $item->variant->price - $discount->discount_value;
+            }
+        }
+        return $price;
     }
 }

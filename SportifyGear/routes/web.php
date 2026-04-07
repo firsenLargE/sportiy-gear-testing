@@ -68,6 +68,8 @@ Route::middleware('auth')->group(function () {
     // Shopping Cart
     Route::prefix('cart')->name('cart.')->controller(CartController::class)->group(function () {
         Route::get('/', 'index')->name('index');
+        Route::get('/checkout', 'checkout')->name('checkout');
+
         Route::post('/add', 'add')->name('add');
         Route::put('/update/{id}', 'update')->name('update');
         Route::delete('/remove/{id}', 'remove')->name('remove');
@@ -83,11 +85,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/toggle', 'toggle')->name('toggle');
         Route::get('/check/{productId}', 'check')->name('check');
     });
-
     // Order Management
     Route::prefix('orders')->name('orders.')->controller(OrderController::class)->group(function () {
-        Route::get('/checkout', 'checkout')->name('checkout');
+
         Route::post('/place', 'placeOrder')->name('place');
+        Route::get('/place/{productId}/{variantId?}', 'directOrderForm')->name('place');
         Route::get('/success/{order}', 'success')->name('success');
         Route::get('/my-orders', 'myOrders')->name('my');
         Route::get('/{order}', 'show')->name('show');
