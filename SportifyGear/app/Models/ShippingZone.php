@@ -10,10 +10,17 @@ class ShippingZone extends Model
     use HasFactory;
 
     protected $fillable = [
+        'province_id',
         'district_id',
         'shipping_fee',
         'is_active',
     ];
+
+
+    public function province()
+    {
+        return $this->belongsTo(Province::class, 'province_id');
+    }
 
     public function district()
     {

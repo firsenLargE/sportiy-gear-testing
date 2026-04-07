@@ -6,7 +6,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <!-- Form Section -->
                 <div class="lg:col-span-2">
-                    <form method="POST" action="{{ route('orders.place') }}" id="directOrderForm">
+                    <form method="POST" action="{{ route('orders.store') }}" id="directOrderForm">
                         @csrf
                         <input type="hidden" name="product_variant_id" value="{{ $variant->id }}">
 
@@ -19,7 +19,8 @@
                                     <option value="">Choose an address</option>
                                     @foreach ($addresses as $address)
                                         <option value="{{ $address->id }}">
-                                            {{ $address->address_line1 }}, {{ $address->city }}, {{ $address->state }} -
+                                            {{ $address->address_line1 }}, {{ $address->city }},
+                                            {{ $address->state }} -
                                             {{ $address->pincode }}
                                         </option>
                                     @endforeach
@@ -57,16 +58,12 @@
                                     <input type="radio" name="payment_method" value="esewa" class="mr-3"> eSewa
                                 </label>
                                 <label class="flex items-center p-3 border rounded-lg cursor-pointer">
-                                    <input type="radio" name="payment_method" value="khalti" class="mr-3"> Khalti
+                                    <input type="radio" name="payment_method" value="khalti" class="mr-3">
+                                    Khalti
                                 </label>
                             </div>
                         </div>
 
-                        <!-- Notes -->
-                        <div class="bg-white rounded-xl shadow-md p-6">
-                            <h2 class="text-xl font-bold text-gray-800 mb-4">Order Notes (Optional)</h2>
-                            <textarea name="notes" rows="3" class="w-full border rounded-lg p-3" placeholder="Special instructions..."></textarea>
-                        </div>
                     </form>
                 </div>
 
@@ -117,7 +114,7 @@
 
                         <button type="submit" form="directOrderForm"
                             class="w-full mt-6 bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700 font-semibold">
-                            Place Order
+                            Pay Now
                         </button>
 
                         <a href="{{ route('products.show', $product->slug) }}"

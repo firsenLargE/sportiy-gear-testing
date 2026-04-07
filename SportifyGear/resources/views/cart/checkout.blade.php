@@ -6,7 +6,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <!-- Checkout Form -->
                 <div class="lg:col-span-2">
-                    <form method="POST" action="{{ route('orders.place') }}" id="checkoutForm">
+                    <form method="POST" action="{{ route('orders.store') }}" id="checkoutForm">
                         @csrf
                         @foreach ($selectedItems as $item)
                             <input type="hidden" name="selected_items[]" value="{{ $item->id }}">
@@ -62,17 +62,9 @@
                             </div>
                         </div>
 
-                        <!-- Order Notes -->
-                        <div class="bg-white rounded-xl shadow-md p-6">
-                            <h2 class="text-xl font-bold text-gray-800 mb-4">Order Notes (Optional)</h2>
-                            <textarea name="notes" rows="3"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="Special instructions for delivery..."></textarea>
-                        </div>
                     </form>
                 </div>
 
-                <!-- Order Summary -->
                 <!-- Order Summary -->
 
                 <div class="bg-white rounded-xl shadow-md p-6 sticky top-24">
@@ -129,7 +121,7 @@
 
                     <button type="submit" form="checkoutForm"
                         class="w-full mt-6 bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700">
-                        Place Order
+                        Pay Now
                     </button>
                     <a href="{{ route('cart.index') }}"
                         class="block text-center mt-3 text-gray-500 hover:text-gray-700 text-sm">

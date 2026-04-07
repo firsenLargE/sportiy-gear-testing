@@ -10,12 +10,17 @@ return new class extends Migration
     {
         Schema::create('shipping_zones', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('province_id')
+                ->constrained()
+                ->cascadeOnDelete();
             $table->foreignId('district_id')
                 ->constrained()
                 ->cascadeOnDelete();
+
             $table->decimal('shipping_fee', 10, 2)->default(0);
             $table->boolean('is_active')->default(false);
             $table->timestamps();
+            $table->unique('province_id');
             $table->unique('district_id');
         });
     }

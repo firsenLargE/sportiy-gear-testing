@@ -230,7 +230,7 @@
                             </button>
                         </div>
                         <div class="mt-3">
-                            <a href="{{ route('orders.place', ['product' => $product->id, 'variant' => $selectedVariant->id ?? '']) }}"
+                            <a href="{{ route('orders.place', ['productId' => $product->id, 'variantId' => $variant->id]) }}"
                                 class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 text-center">
                                 <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor"
                                     viewBox="0 0 24 24">
@@ -238,7 +238,7 @@
                                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
                                     </path>
                                 </svg>
-                                Book Now
+                                Buy Now
                             </a>
                         </div>
                     @else

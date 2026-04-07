@@ -88,7 +88,7 @@ Route::middleware('auth')->group(function () {
     // Order Management
     Route::prefix('orders')->name('orders.')->controller(OrderController::class)->group(function () {
 
-        Route::post('/place', 'placeOrder')->name('place');
+        Route::post('/place', 'placeOrder')->name('store');
         Route::get('/place/{productId}/{variantId?}', 'directOrderForm')->name('place');
         Route::get('/success/{order}', 'success')->name('success');
         Route::get('/my-orders', 'myOrders')->name('my');

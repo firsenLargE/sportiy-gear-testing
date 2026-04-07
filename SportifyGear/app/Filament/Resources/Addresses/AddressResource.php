@@ -22,7 +22,7 @@ class AddressResource extends Resource
 
     protected static string | \UnitEnum | null $navigationGroup = 'User Management';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $navigationLabel = 'Shipping Addresses';
 
