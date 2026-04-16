@@ -9,6 +9,7 @@ use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WishlistController;
 
@@ -85,14 +86,23 @@ Route::middleware('auth')->group(function () {
         Route::post('/toggle', 'toggle')->name('toggle');
         Route::get('/check/{productId}', 'check')->name('check');
     });
-    // Order Management
+    // Order Management (existing + new prepare route)
     Route::prefix('orders')->name('orders.')->controller(OrderController::class)->group(function () {
-
-        Route::post('/place', 'placeOrder')->name('store');
+        Route::post('/prepare', 'prepareOrder')->name('prepare');          // NEW
+        Route::post('/place', 'placeOrder')->name('store');                // existing (direct)
         Route::get('/place/{productId}/{variantId?}', 'directOrderForm')->name('place');
         Route::get('/success/{order}', 'success')->name('success');
         Route::get('/my-orders', 'myOrders')->name('my');
         Route::get('/{order}', 'show')->name('show');
         Route::put('/{order}/cancel', 'cancel')->name('cancel');
+    });
+
+    // Payment routes
+    Route::prefix('payment')->name('payment.')->controller(PaymentController::class)->group(function () {
+        Route::get('/{order}', 'show')->name('show');
+        Route::post('/process', 'process')->name('process');
+        Route::get('/esewa/success', 'esewaSuccess')->name('esewa.success');
+        Route::get('/esewa/failure', 'esewaFailure')->name('esewa.failure');
+        Route::get('/khalti/verify', 'khaltiVerify')->name('khalti.verify');
     });
 });

@@ -46,23 +46,6 @@
                             </div>
                         </div>
 
-                        <!-- Payment Method -->
-                        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-                            <h2 class="text-xl font-bold text-gray-800 mb-4">Payment Method</h2>
-                            <div class="space-y-3">
-                                <label class="flex items-center p-3 border rounded-lg cursor-pointer">
-                                    <input type="radio" name="payment_method" value="cod" checked class="mr-3">
-                                    Cash on Delivery
-                                </label>
-                                <label class="flex items-center p-3 border rounded-lg cursor-pointer">
-                                    <input type="radio" name="payment_method" value="esewa" class="mr-3"> eSewa
-                                </label>
-                                <label class="flex items-center p-3 border rounded-lg cursor-pointer">
-                                    <input type="radio" name="payment_method" value="khalti" class="mr-3">
-                                    Khalti
-                                </label>
-                            </div>
-                        </div>
 
                     </form>
                 </div>
@@ -114,7 +97,7 @@
 
                         <button type="submit" form="directOrderForm"
                             class="w-full mt-6 bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700 font-semibold">
-                            Pay Now
+                            Proceed to Payment
                         </button>
 
                         <a href="{{ route('products.show', $product->slug) }}"
