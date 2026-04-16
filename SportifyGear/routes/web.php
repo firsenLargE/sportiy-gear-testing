@@ -13,7 +13,6 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WishlistController;
 
-// ==================== PUBLIC ROUTES ====================
 
 // Public Routes
 Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');
@@ -26,7 +25,7 @@ Route::prefix('products')->group(function () {
     Route::get('/{slug}', [ProductController::class, 'show'])->name('products.show');
 });
 
-// ==================== AUTHENTICATION ROUTES ====================
+// Authentication
 Route::middleware('guest')->group(function () {
     // Registration
     Route::controller(RegisteredUserController::class)->group(function () {
@@ -52,7 +51,6 @@ Route::middleware('guest')->group(function () {
     });
 });
 
-// ==================== PROTECTED ROUTES ====================
 Route::middleware('auth')->group(function () {
 
     // Logout
@@ -62,7 +60,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('profile')->name('profile.')->controller(ProfileController::class)->group(function () {
         Route::get('/', 'edit')->name('edit');
         Route::put('/', 'update')->name('update');
-        Route::put('/password', 'updatePassword')->name('password.update'); // Add this line
+        Route::put('/password', 'updatePassword')->name('password.update');
         Route::delete('/', 'destroy')->name('destroy');
     });
 
@@ -86,10 +84,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/toggle', 'toggle')->name('toggle');
         Route::get('/check/{productId}', 'check')->name('check');
     });
-    // Order Management (existing + new prepare route)
+    // Order Management
     Route::prefix('orders')->name('orders.')->controller(OrderController::class)->group(function () {
-        Route::post('/prepare', 'prepareOrder')->name('prepare');          // NEW
-        Route::post('/place', 'placeOrder')->name('store');                // existing (direct)
+        Route::post('/prepare', 'prepareOrder')->name('prepare');
+        Route::post('/place', 'placeOrder')->name('store');
         Route::get('/place/{productId}/{variantId?}', 'directOrderForm')->name('place');
         Route::get('/success/{order}', 'success')->name('success');
         Route::get('/my-orders', 'myOrders')->name('my');
