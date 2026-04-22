@@ -33,7 +33,7 @@ class ProfileController extends Controller
                 'string',
                 'min:3',
                 'max:100',
-                'regex:/[a-zA-Z]/',           // Must contain at least one letter (prevents only numbers)
+                'regex:/[a-zA-Z]/',
             ],
             'email' => [
                 'required',
@@ -53,7 +53,7 @@ class ProfileController extends Controller
                 'in:male,female,other',
             ],
         ], [
-            // Custom friendly error messages
+
             'name.required' => 'Full name is required.',
             'name.min'      => 'Full name must be at least 3 characters long.',
             'name.max'      => 'Full name cannot be longer than 100 characters.',

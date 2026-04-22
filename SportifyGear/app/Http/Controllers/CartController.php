@@ -180,7 +180,7 @@ class CartController extends Controller
     }
 
     /**
-     * Checkout - handles both full cart and selected items
+     * Checkout 
      */
     public function checkout(Request $request)
     {
@@ -200,7 +200,6 @@ class CartController extends Controller
             return redirect()->route('cart.index')->with('error', 'Your cart is empty.');
         }
 
-        // ✅ Direct query – only selected items
         $selectedItems = CartItem::with([
             'variant.product',
             'variant.images',
@@ -210,12 +209,10 @@ class CartController extends Controller
             ->where('cart_id', $cart->id)
             ->whereIn('id', $selectedItemIds)
             ->get();
-
         if ($selectedItems->isEmpty()) {
             return redirect()->route('cart.index')->with('error', 'Selected items not found in your cart.');
         }
 
-        // Calculate final price for each selected item
         foreach ($selectedItems as $item) {
             $item->final_price = $this->getFinalPrice($item->variant);
         }
@@ -224,7 +221,9 @@ class CartController extends Controller
             return ($item->final_price ?? $item->variant->price ?? 0) * $item->quantity;
         });
 
-        $addresses = Address::where('user_id', $user->id)->get();
+        $addresses = Address::with(['province', 'district', 'shippingZone'])
+            ->where('user_id', $user->id)
+            ->get();
         $shipping = $subtotal > 2000 ? 0 : 100;
         $total = $subtotal + $shipping;
 

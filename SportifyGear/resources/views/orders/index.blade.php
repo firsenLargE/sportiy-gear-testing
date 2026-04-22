@@ -93,12 +93,12 @@
                                         </p>
                                     </div>
                                     <div class="flex gap-3 mt-4 sm:mt-0">
-                                        <a href="{{ route('order.show', $order) }}"
+                                        <a href="{{ route('orders.show', $order) }}"
                                             class="px-4 py-2 border border-orange-600 text-orange-600 rounded-lg hover:bg-orange-50 transition">
                                             View Details
                                         </a>
                                         @if (in_array($order->status_id, [1, 2]))
-                                            <form method="POST" action="{{ route('order.cancel', $order) }}"
+                                            <form method="POST" action="{{ route('orders.cancel', $order) }}"
                                                 class="inline">
                                                 @csrf
                                                 @method('PUT')

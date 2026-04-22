@@ -25,19 +25,17 @@ class ProductController extends Controller
             ->withCount('reviews')
             ->where('is_active', true);
 
-        // 🔍 Search
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        // 📂 Category
         if ($request->filled('category')) {
             $query->whereHas('categories', function ($q) use ($request) {
                 $q->where('slug', $request->category);
             });
         }
 
-        // 💰 Price
+
         if ($request->filled('min') || $request->filled('max')) {
             $query->whereHas('variants', function ($q) use ($request) {
                 if ($request->filled('min')) {
@@ -49,7 +47,6 @@ class ProductController extends Controller
             });
         }
 
-        // 🎯 Attributes
         $attributes = Attribute::with('values')->get();
         foreach ($attributes as $attribute) {
             $values = $request->get('attribute_' . $attribute->id, []);
@@ -60,7 +57,6 @@ class ProductController extends Controller
             }
         }
 
-        // 🔽 Sorting
         if ($request->filled('sort')) {
             switch ($request->sort) {
                 case 'latest':
@@ -131,7 +127,6 @@ class ProductController extends Controller
             ->where('slug', $slug)
             ->firstOrFail();
 
-        // Related products (same categories)
         $relatedProducts = Product::with([
             'images:id,product_id,image_path,is_primary',
             'variants' => function ($q) {
@@ -150,7 +145,6 @@ class ProductController extends Controller
             ->take(9)
             ->get();
 
-        // --- NEW: Get variant IDs already in user's cart ---
         $cartVariantIds = [];
         if (Auth::check()) {
             $cart = Cart::where('user_id', Auth::id())->first();

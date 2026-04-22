@@ -16,8 +16,8 @@ class District extends Model
         return $this->belongsTo(Province::class);
     }
 
-    public function shippingZone()
+    public function shippingZones()
     {
-        return $this->hasOne(ShippingZone::class);
+        return $this->hasMany(ShippingZone::class);
     }
 }

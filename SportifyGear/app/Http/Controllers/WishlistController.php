@@ -10,8 +10,6 @@ use Illuminate\Support\Facades\Auth;
 class WishlistController extends Controller
 {
 
-
-    // Get user's wishlist
     public function index()
     {
         $wishlistItems = Wishlist::with(['product' => function ($q) {
@@ -115,7 +113,6 @@ class WishlistController extends Controller
         ]);
     }
 
-    // Check if product is in wishlist
     public function check($productId)
     {
         $exists = Wishlist::where('user_id', Auth::id())

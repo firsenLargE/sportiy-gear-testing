@@ -4,7 +4,7 @@
             <!-- Header -->
             <div class="flex flex-wrap justify-between items-center mb-6">
                 <h1 class="text-3xl font-bold text-gray-900">Order Details</h1>
-                <a href="{{ route('order.my') }}" class="text-orange-600 hover:text-orange-700">
+                <a href="{{ route('orders.my') }}" class="text-orange-600 hover:text-orange-700">
                     ← Back to My Orders
                 </a>
             </div>
@@ -146,7 +146,7 @@
 
             <!-- Order Summary & Shipping Info -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Shipping Information -->
+                <!-- Shipping Information (fixed for province/district) -->
                 <div class="bg-white rounded-xl shadow-md overflow-hidden">
                     <div class="px-6 py-4 bg-gray-50 border-b">
                         <h3 class="font-semibold text-gray-800">Shipping Information</h3>
@@ -155,13 +155,13 @@
                         <p class="font-medium text-gray-800">{{ $order->address->name ?? Auth::user()->name }}</p>
                         <p class="text-gray-600 text-sm mt-1">{{ $order->address->phone_no ?? '' }}</p>
                         <p class="text-gray-600 text-sm mt-2">
-                            {{ $order->address->address_line1 }},
-                            @if ($order->address->address_line2)
-                                {{ $order->address->address_line2 }},
-                            @endif
-                            {{ $order->address->city }}, {{ $order->address->state }}
+                            {{ $order->address->address_line1 }}
+                            @if ($order->address->address_line2), {{ $order->address->address_line2 }} @endif
+                            , {{ $order->address->district->name ?? '' }}, {{ $order->address->province->name ?? '' }}
                         </p>
-                        <p class="text-gray-600 text-sm">PIN: {{ $order->address->pincode }}</p>
+                        @if ($order->address->nearest_landmark)
+                            <p class="text-gray-600 text-sm">Near: {{ $order->address->nearest_landmark }}</p>
+                        @endif
                     </div>
                 </div>
 
@@ -205,7 +205,7 @@
                         </div>
 
                         @if (in_array($order->status_id, [1, 2]))
-                            <form method="POST" action="{{ route('order.cancel', $order) }}" class="mt-6"
+                            <form method="POST" action="{{ route('orders.cancel', $order) }}" class="mt-6"
                                 onsubmit="return confirm('Are you sure you want to cancel this order?')">
                                 @csrf
                                 @method('PUT')

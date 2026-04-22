@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AddressController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -76,6 +77,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/count', 'getCount')->name('count');
     });
 
+    //Address Routes
+    Route::middleware(['auth'])->group(function () {
+        Route::post('/addresses', [AddressController::class, 'store'])->name('addresses.store');
+        Route::get('/districts/{provinceId}', [AddressController::class, 'getDistricts'])->name('districts.by-province');
+        Route::get('/addresses/{addressId}/shipping-fee', [AddressController::class, 'getShippingFee'])->name('addresses.shipping-fee');
+        Route::put('/addresses/{address}', [AddressController::class, 'update'])->name('addresses.update');
+        Route::delete('/addresses/{address}', [AddressController::class, 'destroy'])->name('addresses.destroy');
+        Route::get('/addresses/user-addresses', [AddressController::class, 'userAddresses'])->name('addresses.user');
+        Route::get('/addresses/{address}/edit-data', [AddressController::class, 'editData'])->name('addresses.edit-data');
+    });
+
     // Wishlist
     Route::prefix('wishlist')->name('wishlist.')->controller(WishlistController::class)->group(function () {
         Route::get('/', 'index')->name('index');
@@ -84,9 +96,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/toggle', 'toggle')->name('toggle');
         Route::get('/check/{productId}', 'check')->name('check');
     });
+
     // Order Management
     Route::prefix('orders')->name('orders.')->controller(OrderController::class)->group(function () {
-        Route::post('/prepare', 'prepareOrder')->name('prepare');
+        Route::post('/prepare', 'prepare')->name('prepare');
         Route::post('/place', 'placeOrder')->name('store');
         Route::get('/place/{productId}/{variantId?}', 'directOrderForm')->name('place');
         Route::get('/success/{order}', 'success')->name('success');
@@ -99,8 +112,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('payment')->name('payment.')->controller(PaymentController::class)->group(function () {
         Route::get('/{order}', 'show')->name('show');
         Route::post('/process', 'process')->name('process');
-        Route::get('/esewa/success', 'esewaSuccess')->name('esewa.success');
-        Route::get('/esewa/failure', 'esewaFailure')->name('esewa.failure');
-        Route::get('/khalti/verify', 'khaltiVerify')->name('khalti.verify');
     });
+    Route::get('/payment/khalti/{order}', [PaymentController::class, 'khaltiInitiate'])->name('payment.khalti');
+    Route::get('/khalti/callback/{orderId}', [PaymentController::class, 'khaltiCallback'])->name('payment.khalti.callback');
 });

@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'khalti' => [
+        'secret_key'    => env('KHALTI_SECRET_KEY'),
+        'initiate_url'  => env('KHALTI_INITIATE_URL', 'https://khalti.com/api/v2/epayment/initiate/'),
+        'lookup_url'    => env('KHALTI_LOOKUP_URL', 'https://khalti.com/api/v2/epayment/lookup/'),
+    ],
 ];

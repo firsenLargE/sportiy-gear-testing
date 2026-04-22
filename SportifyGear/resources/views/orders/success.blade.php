@@ -45,21 +45,22 @@
                         </div>
                     </div>
 
-                    <!-- Shipping Info -->
+                    <!-- Shipping Info (fixed for province/district) -->
                     <div class="text-left bg-blue-50 rounded-lg p-4 mb-6">
                         <h3 class="font-semibold text-gray-800 mb-2">Shipping Address:</h3>
                         <p class="text-sm text-gray-600">
-                            {{ $order->address->address_line1 }},
-                            @if ($order->address->address_line2)
-                                {{ $order->address->address_line2 }},
+                            {{ $order->address->address_line1 }}
+                            @if ($order->address->address_line2), {{ $order->address->address_line2 }} @endif
+                            , {{ $order->address->district->name ?? '' }}, {{ $order->address->province->name ?? '' }}
+                            @if ($order->address->nearest_landmark)
+                                <br>(Near: {{ $order->address->nearest_landmark }})
                             @endif
-                            {{ $order->address->city }}, {{ $order->address->state }} - {{ $order->address->pincode }}
                         </p>
                     </div>
 
-                    <!-- Action Buttons -->
+                    <!-- Action Buttons (fixed route name) -->
                     <div class="flex gap-3">
-                        <a href="{{ route('order.show', $order) }}"
+                        <a href="{{ route('orders.show', $order) }}"
                             class="flex-1 bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 transition">
                             View Order Details
                         </a>
