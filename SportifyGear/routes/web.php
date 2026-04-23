@@ -19,7 +19,9 @@ use App\Http\Controllers\WishlistController;
 Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
 Route::get('/', [ProductController::class, 'homeProducts'])->name('home');
-
+Route::get('/about', function () {
+    return view('aboutus.index');
+})->name('about.index');
 // Product Routes (Public)
 Route::prefix('products')->group(function () {
     Route::get('/', [ProductController::class, 'index'])->name('products.index');

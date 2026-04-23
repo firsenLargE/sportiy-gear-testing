@@ -1,4 +1,4 @@
-<footer class="bg-gradient-to-r from-gray-900 to-gray-800 text-gray-300 mt-10">
+<footer class="bg-gradient-to-r from-gray-900 to-gray-800 text-gray-300 mt-0">
     <div class="container mx-auto px-4 py-12">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
 
@@ -29,14 +29,18 @@
             <div>
                 <h4 class="text-white font-semibold text-lg mb-4 border-b border-gray-700 inline-block pb-1">Quick Links
                 </h4>
+
                 <ul class="space-y-2 text-sm">
-                    <li><a href="#" class="hover:text-orange-500 transition flex items-center gap-2"><i
+                    <li><a href="/" class="hover:text-orange-500 transition flex items-center gap-2"><i
                                 class="fas fa-chevron-right text-xs"></i> Home</a></li>
-                    <li><a href="#" class="hover:text-orange-500 transition flex items-center gap-2"><i
-                                class="fas fa-chevron-right text-xs"></i> Shop</a></li>
-                    <li><a href="#" class="hover:text-orange-500 transition flex items-center gap-2"><i
+                    <li><a href="{{ route('products.index') }}"
+                            class="hover:text-orange-500 transition flex items-center gap-2"><i
+                                class="fas fa-chevron-right text-xs"></i> Products</a></li>
+                    <li><a href="/flash-sale" class="hover:text-orange-500 transition flex items-center gap-2"><i
+                                class="fas fa-chevron-right text-xs"></i> Flash Sale</a></li>
+                    <li><a href="/about" class="hover:text-orange-500 transition flex items-center gap-2"><i
                                 class="fas fa-chevron-right text-xs"></i> About Us</a></li>
-                    <li><a href="#" class="hover:text-orange-500 transition flex items-center gap-2"><i
+                    <li><a href="/contact" class="hover:text-orange-500 transition flex items-center gap-2"><i
                                 class="fas fa-chevron-right text-xs"></i> Contact</a></li>
                 </ul>
             </div>
