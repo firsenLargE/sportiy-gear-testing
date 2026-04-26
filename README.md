@@ -19,7 +19,14 @@ composer install --ignore-platform-reqs
 npm install
 ```
 
-#### 3. Setup your Database
+#### 3. Setup your Environment
+Copy the example settings to make your own settings file:
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+#### 4. Setup your Database
 Follow the steps for the database you have installed:
 
 **Option A: If you have MySQL or MariaDB**
@@ -27,22 +34,22 @@ Follow the steps for the database you have installed:
    `sudo mariadb -e "CREATE DATABASE IF NOT EXISTS ecommercewebsite;"`
 2. Create the user:  
    `sudo mariadb -e "CREATE USER IF NOT EXISTS 'sportify'@'localhost' IDENTIFIED BY 'sportify_secret'; GRANT ALL PRIVILEGES ON ecommercewebsite.* TO 'sportify'@'localhost'; FLUSH PRIVILEGES;"`
-3. Check your `.env` file: Make sure `DB_CONNECTION=mysql` is set.
+3. Check your `.env` file: Make sure `DB_CONNECTION=mysql` and `DB_HOST=127.0.0.1` are set.
 
 **Option B: If you have PostgreSQL**
 1. Create the database:  
    `sudo -u postgres psql -c "CREATE DATABASE ecommercewebsite;"`
 2. Create the user:  
    `sudo -u postgres psql -c "CREATE USER sportify WITH PASSWORD 'sportify_secret'; GRANT ALL PRIVILEGES ON DATABASE ecommercewebsite TO sportify;"`
-3. Check your `.env` file: Change `DB_CONNECTION=pgsql` and `DB_PORT=5432`.
+3. Check your `.env` file: Change `DB_CONNECTION=pgsql`, `DB_HOST=127.0.0.1`, and `DB_PORT=5432`.
 
-#### 4. Prepare the Data
+#### 5. Prepare the Data
 Run this command to build the tables and add starting data:
 ```bash
 php artisan migrate:fresh --seed
 ```
 
-#### 5. Start the Website!
+#### 6. Start the Website!
 You need **two** terminal windows open:
 *   **Window 1**: `php artisan serve`
 *   **Window 2**: `npm run dev`
@@ -58,7 +65,7 @@ Email: admin@example.com
 Password: password123
 
 ### ❓ Troubleshooting
-- **Database error?** Double-check your `.env` file credentials match the steps in Step 3.
+- **Database error?** Double-check your `.env` file credentials match the steps in Step 4.
 - **Vite not loading?** Make sure `npm run dev` is still running in the second terminal.
 
 Happy Coding! 🚀
