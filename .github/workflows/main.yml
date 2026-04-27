@@ -1,0 +1,58 @@
+name: SportifyGear CI/CD
+
+on:
+  push:
+    branches: [ "main", "devops-automation" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  laravel-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: mbstring, xml, ctype, iconv, mysql, bcmath, gd, intl
+        coverage: none
+
+    - name: Copy .env
+      run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+      working-directory: ./SportifyGear
+
+    - name: Install Dependencies
+      run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+      working-directory: ./SportifyGear
+
+    - name: Generate Key
+      run: php artisan key:generate
+      working-directory: ./SportifyGear
+
+    - name: Directory Permissions
+      run: chmod -R 777 storage bootstrap/cache
+      working-directory: ./SportifyGear
+
+    - name: Create Database
+      run: |
+        mkdir -p database
+        touch database/database.sqlite
+      working-directory: ./SportifyGear
+
+    - name: Execute Tests
+      env:
+        DB_CONNECTION: sqlite
+        DB_DATABASE: database/database.sqlite
+      run: php artisan test
+      working-directory: ./SportifyGear
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: laravel-tests
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build Docker Image
+      run: docker compose build app
